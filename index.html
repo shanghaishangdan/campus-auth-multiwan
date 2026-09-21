@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>校园网认证 + 单线多拨方案</title>
+<title>校园网认证 + 单线多拨 完全指南</title>
 <style>
   :root {
     --bg: #0f172a;
@@ -20,17 +20,13 @@
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-    line-height: 1.7;
-    padding: 2rem 1rem;
+    line-height: 1.8;
+    padding: 1.5rem 1rem;
   }
-  .container { max-width: 860px; margin: 0 auto; }
-  header {
-    text-align: center;
-    padding: 3rem 1rem;
-    margin-bottom: 2rem;
-  }
+  .container { max-width: 880px; margin: 0 auto; }
+  header { text-align: center; padding: 3rem 1rem 2rem; }
   header h1 {
-    font-size: 2.2rem;
+    font-size: 2.1rem;
     margin-bottom: 0.8rem;
     background: linear-gradient(90deg, var(--accent), var(--green));
     -webkit-background-clip: text;
@@ -39,75 +35,48 @@
   }
   header p { color: var(--muted); font-size: 1.05rem; }
   .badge {
-    display: inline-block;
-    padding: 0.25rem 0.8rem;
-    margin: 0.3rem;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-size: 0.85rem;
+    display: inline-block; padding: 0.25rem 0.8rem; margin: 0.3rem;
+    border-radius: 999px; border: 1px solid var(--border);
+    color: var(--muted); font-size: 0.85rem;
   }
   section {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.5rem 1.8rem;
-    margin-bottom: 1.5rem;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem 1.8rem; margin-bottom: 1.4rem;
   }
   h2 {
-    font-size: 1.3rem;
-    margin-bottom: 1rem;
-    color: var(--accent);
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
+    font-size: 1.35rem; margin-bottom: 1rem; color: var(--accent);
+    border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;
   }
-  ul { padding-left: 1.3rem; }
-  li { margin: 0.4rem 0; }
+  h3 { color: var(--text); margin: 1rem 0 0.4rem; font-size: 1.05rem; }
+  p { margin: 0.5rem 0; }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.35rem 0; }
   code {
-    background: #0b1120;
-    padding: 0.15rem 0.45rem;
-    border-radius: 4px;
+    background: #0b1120; padding: 0.15rem 0.45rem; border-radius: 4px;
     font-family: "JetBrains Mono", "Consolas", monospace;
-    font-size: 0.9em;
-    color: var(--green);
+    font-size: 0.88em; color: var(--green);
   }
   pre {
-    background: #0b1120;
-    padding: 1rem;
-    border-radius: 8px;
-    overflow-x: auto;
-    font-family: "JetBrains Mono", "Consolas", monospace;
-    font-size: 0.85rem;
-    line-height: 1.6;
+    background: #0b1120; padding: 1rem; border-radius: 8px;
+    overflow-x: auto; font-family: "JetBrains Mono", "Consolas", monospace;
+    font-size: 0.82rem; line-height: 1.7; margin: 0.6rem 0;
   }
   pre code { background: none; padding: 0; color: #cbd5e1; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 0.8rem 0;
-  }
-  th, td {
-    padding: 0.6rem 0.8rem;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-  }
+  table { width: 100%; border-collapse: collapse; margin: 0.8rem 0; }
+  th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
   th { color: var(--muted); font-weight: 500; }
   .ok { color: var(--green); }
   .warn { color: var(--red); }
   .tip {
-    border-left: 3px solid var(--accent);
-    padding: 0.8rem 1rem;
-    margin: 1rem 0;
-    background: #0b1120;
-    border-radius: 0 8px 8px 0;
-    color: var(--muted);
+    border-left: 3px solid var(--accent); padding: 0.8rem 1rem;
+    margin: 1rem 0; background: #0b1120; border-radius: 0 8px 8px 0; color: var(--muted);
   }
-  footer {
-    text-align: center;
-    color: var(--muted);
-    padding: 2rem;
-    font-size: 0.9rem;
+  .step { counter-increment: step; }
+  .step h3::before {
+    content: "第 " counter(step) " 步 · "; color: var(--accent);
   }
+  .steps { counter-reset: step; }
+  footer { text-align: center; color: var(--muted); padding: 2rem; font-size: 0.9rem; }
   a { color: var(--accent); text-decoration: none; }
 </style>
 </head>
@@ -115,8 +84,8 @@
 <div class="container">
 
 <header>
-  <h1>校园网认证 + 单线多拨方案</h1>
-  <p>针对 raasportal 认证系统的校园网，实现单线多拨带宽叠加、自动认证、掉线保活</p>
+  <h1>校园网认证 + 单线多拨 完全指南</h1>
+  <p>一根网线拨多个号，带宽叠加 + 自动认证 + 掉线保活，零基础也能看懂</p>
   <div style="margin-top:1rem;">
     <span class="badge">OpenWrt / iStoreOS</span>
     <span class="badge">纯 Python · 零依赖</span>
@@ -126,78 +95,134 @@
 </header>
 
 <section>
-  <h2>功能特性</h2>
+  <h2>这是什么？（说人话）</h2>
+  <p><strong>一句话</strong>：让你的路由器「一根网线同时拨多个号」，把校园网带宽叠加起来，而且<strong>掉线了自动重新登录</strong>。</p>
+  <p>举个栗子 🌰：</p>
   <ul>
-    <li><strong>纯 Python AES 加密</strong>：密码加密逻辑内置，无需第三方库</li>
-    <li><strong>单线多拨</strong>：双拨 / 四拨，每个拨号接口独立认证、绑定源接口</li>
-    <li><strong>keep 保活</strong>：HTTP <code>204/302</code> 精确检测认证状态，掉线自动重连</li>
-    <li><strong>日志自动轮转</strong>：日志超限自动截断，不占内存</li>
-    <li><strong>静态路由</strong>：多 WAN 场景防止认证服务器被抢</li>
+    <li>宿舍只有<strong>一根网线</strong>，认证后单账号下载比如 <strong>40 Mbps</strong></li>
+    <li>本方案让这根线「分身」成 2 个（甚至 4 个）虚拟接口，各自认证</li>
+    <li>下载速度<strong>翻倍到 80 Mbps</strong>（每个虚拟接口有独立带宽配额）</li>
   </ul>
 </section>
 
 <section>
-  <h2>技术原理</h2>
-  <h3 style="color:var(--text);margin:0.8rem 0 0.4rem;">密码加密</h3>
-  <p>从前端 <code>crypto.js</code> 逆向得到：<code>AES-128-ECB-ZeroPadding</code>，明文为「4 位随机 salt + 密码」。</p>
-  <h3 style="color:var(--text);margin:0.8rem 0 0.4rem;">keep 检测机制</h3>
+  <h2>你需要准备什么</h2>
   <table>
-    <tr><th>状态码</th><th>含义</th><th>动作</th></tr>
-    <tr><td><code>204</code></td><td>认证在线</td><td>不动作</td></tr>
-    <tr><td><code>302</code></td><td>认证掉线（Portal 重定向）</td><td class="ok">自动重连</td></tr>
-    <tr><td><code>000</code>/err</td><td>网络抖动</td><td class="warn">跳过，避免误判</td></tr>
+    <tr><th>东西</th><th>说明</th></tr>
+    <tr><td><strong>路由器</strong></td><td>刷了 OpenWrt / iStoreOS 的路由器</td></tr>
+    <tr><td><strong>校园网账号</strong></td><td>1 个（双拨）/ 2 个（四拨），每个账号限 2 台设备</td></tr>
+    <tr><td><strong>电脑</strong></td><td>远程登录路由器（Windows 自带，无需装软件）</td></tr>
+    <tr><td><strong>网线</strong></td><td>校园网口到路由器 WAN 口</td></tr>
   </table>
-  <h3 style="color:var(--text);margin:0.8rem 0 0.4rem;">静态路由</h3>
-  <p>多 WAN 场景下，认证服务器（内网）可能被其他 WAN 的 default 路由抢走。<code>99-campus-auth</code> 用 <code>prio 50</code> 的 ip rule 锁死认证服务器走校园网接口。</p>
 </section>
 
 <section>
-  <h2>文件结构</h2>
-  <pre><code>.
-├── 2wan/                    # 双拨版
-│   ├── campus_auth_openwrt.py
-│   ├── 99-campus-auth
-│   └── campus_auth.initd
-├── 4wan/                    # 四拨版（需第二个账号）
-│   ├── campus_auth_openwrt.py
-│   ├── 99-campus-auth
-│   └── campus_auth.initd
-├── campus_login.py          # Windows 版（验证认证逻辑）
-├── mwan3.user               # mwan3 通知脚本（可选）
-├── verify.bat               # Windows 双击验证
-└── README.md</code></pre>
+  <h2>核心概念（1 分钟看懂）</h2>
+  <h3>① 拨号</h3>
+  <p>校园网插线后，路由器 WAN 口通过 DHCP 自动拿到 IP（如 <code>10.112.84.44</code>），这个过程就是一次拨号。</p>
+  <h3>② 单线多拨</h3>
+  <p>通过 <strong>macvlan</strong> 技术，在同一根物理网线上创建多个「虚拟网卡」，每个有独立 MAC 和 IP，等于「一根线拨多个号」。</p>
+  <h3>③ 认证</h3>
+  <p>校园网要先登录认证（输学号密码），认证系统记录「哪个 IP/MAC 已认证」后才放行上网。</p>
+  <h3>④ mwan3</h3>
+  <p>多 WAN 负载均衡插件，把流量自动分配到多个拨号，让下载速度叠加。</p>
+  <h3>⑤ keep 保活</h3>
+  <p>看门狗脚本，每 15 秒检查一次，掉线自动重连，让你一直在线。</p>
 </section>
 
 <section>
-  <h2>快速部署</h2>
-  <pre><code># 1. 上传主脚本（双拨为例）
-scp 2wan/campus_auth_openwrt.py root@&lt;路由IP&gt;:/zy/campus_auth.py
+  <h2>分步教程（手把手）</h2>
+  <div class="steps">
 
-# 2. 部署 init.d 服务
-scp 2wan/campus_auth.initd root@&lt;路由IP&gt;:/etc/init.d/campus_auth
+  <div class="step"><h3>登录路由器</h3>
+    <p>Windows 按 <code>Win + R</code>，输入 <code>cmd</code> 回车：</p>
+    <pre><code>ssh root@192.168.1.1</code></pre>
+    <p>输入密码（屏幕不显示是正常的），看到 <code>root@iStoreOS:~#</code> 就成功了。</p>
+  </div>
+
+  <div class="step"><h3>创建虚拟接口（macvlan）</h3>
+    <pre><code># 看物理 WAN 口名字
+ip link show | grep eth
+
+# 假设是 eth0，创建 2 个虚拟网卡（双拨）
+ip link add link eth0 eth0mac0 type macvlan
+ip link add link eth0 eth0mac1 type macvlan</code></pre>
+    <p class="tip">四拨就再加 <code>eth0mac2</code>、<code>eth0mac3</code> 两个。</p>
+  </div>
+
+  <div class="step"><h3>配置 mwan3</h3>
+    <p>浏览器打开 <code>192.168.1.1</code>，进「网络 → 负载均衡」，按四层配：</p>
+    <ol>
+      <li><strong>接口</strong>：新建 vwan0、vwan1，绑定 eth0mac0、eth0mac1，track_ip 填 <code>www.baidu.com</code></li>
+      <li><strong>成员</strong>：每个接口建一个 member</li>
+      <li><strong>策略</strong>：建 balanced，加入两个 member</li>
+      <li><strong>规则</strong>：目标 <code>0.0.0.0/0</code>，策略选 balanced</li>
+    </ol>
+  </div>
+
+  <div class="step"><h3>上传认证脚本</h3>
+    <pre><code>scp 2wan/campus_auth_openwrt.py root@192.168.1.1:/zy/campus_auth.py</code></pre>
+    <p class="tip">四拨就传 <code>4wan/</code> 里的同名文件。</p>
+  </div>
+
+  <div class="step"><h3>配置账号密码</h3>
+    <pre><code>vi /zy/campus_auth.py</code></pre>
+    <p>找到 <code>INTERFACES</code>，把 <code>YOUR_USERNAME</code> / <code>YOUR_PASSWORD</code> 改成真实账号密码。</p>
+    <p class="tip">vi 操作：按 <code>i</code> 编辑 → 改完按 <code>Esc</code> → 输入 <code>:wq</code> 回车保存。</p>
+  </div>
+
+  <div class="step"><h3>部署保活服务</h3>
+    <pre><code>scp 2wan/campus_auth.initd root@192.168.1.1:/etc/init.d/campus_auth
 chmod +x /etc/init.d/campus_auth
 /etc/init.d/campus_auth enable
-/etc/init.d/campus_auth start
+/etc/init.d/campus_auth start</code></pre>
+  </div>
 
-# 3. 安装依赖
-opkg update &amp;&amp; opkg install curl</code></pre>
-  <div class="tip">
-    ⚠️ 部署前需把脚本里的 <code>YOUR_USERNAME</code> / <code>YOUR_PASSWORD</code> 改成真实账号密码，并修改 <code>BASE_URL</code>（认证服务器地址）、<code>AES_KEY</code>（需自行逆向）。
+  <div class="step"><h3>装依赖 + 测试</h3>
+    <pre><code>opkg update && opkg install curl
+python3 /zy/campus_auth.py</code></pre>
+    <p><strong>预期输出</strong>：<code>[vwan0] 成功 - 认证成功！</code> 和 <code>[vwan1] 成功</code>，双拨就通了。</p>
+  </div>
+
   </div>
 </section>
 
 <section>
-  <h2>双拨 / 四拨</h2>
-  <p>每个账号限 2 台设备：</p>
-  <ul>
-    <li><strong>双拨</strong>（<code>2wan/</code>）：1 个账号认证 2 个接口</li>
-    <li><strong>四拨</strong>（<code>4wan/</code>）：2 个账号认证 4 个接口，把「待填账号2」改成真实值</li>
-  </ul>
+  <h2>日常使用</h2>
+  <p>部署完<strong>完全不用管</strong>：掉线自动重连、重启自动启动、日志自动轮转。</p>
+  <pre><code>python3 /zy/campus_auth.py status    # 查看认证状态
+python3 /zy/campus_auth.py logoff    # 手动下线
+cat /tmp/campus_auth.log             # 查看日志</code></pre>
+</section>
+
+<section>
+  <h2>常见问题（FAQ）</h2>
+  <table>
+    <tr><th>问题</th><th>原因 / 解决</th></tr>
+    <tr><td>认证「重试3次仍失败」</td><td>认证服务器地址不对，或网线断了</td></tr>
+    <tr><td>下载叠加、上传没叠加</td><td>正常现象，上行按账号限速，四拨用 2 账号才能叠加</td></tr>
+    <tr><td>认证成功但网速慢</td><td>检查 mwan3 balanced 策略和规则配对</td></tr>
+    <tr><td>重启后失效</td><td>确认 <code>campus_auth</code> 已 enable</td></tr>
+    <tr><td>插手机热点后认证连不上</td><td>需部署 <code>99-campus-auth</code> 静态路由</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>技术细节</h2>
+  <h3>密码加密</h3>
+  <p>认证系统密码加密（从前端 crypto.js 逆向）：<code>AES-128-ECB-ZeroPadding</code>，明文 = 4 位随机 salt + 密码。</p>
+  <h3>keep 检测</h3>
+  <table>
+    <tr><th>状态码</th><th>含义</th><th>动作</th></tr>
+    <tr><td><code>204</code></td><td>在线</td><td>不动作</td></tr>
+    <tr><td><code>302</code></td><td>认证掉线</td><td class="ok">自动重连</td></tr>
+    <tr><td><code>000</code>/err</td><td>网络抖动</td><td class="warn">跳过</td></tr>
+  </table>
 </section>
 
 <footer>
   <p>仅供学习研究，请遵守所在校园网的使用规范。</p>
-  <p>查看完整说明见 <a href="https://github.com">GitHub 仓库 README</a></p>
+  <p>完整说明见仓库 README</p>
 </footer>
 
 </div>
