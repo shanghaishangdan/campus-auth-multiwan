@@ -86,13 +86,17 @@ ssh root@192.168.1.1
 
 ### 第 2 步：创建虚拟接口（macvlan）
 
-先看你的物理 WAN 口叫什么名字：
+两种方式任选一种，效果一样：
+
+#### 方式 A：命令行（最快）
+
+先看物理 WAN 口叫什么：
 
 ```sh
 ip link show | grep eth
 ```
 
-找到连校园网的那个口（通常是 `eth0` 或 `eth1`）。假设是 `eth0`，创建 2 个虚拟网卡（双拨）：
+找到连校园网的口（通常是 `eth0` 或 `eth1`），假设是 `eth0`，创建 2 个虚拟网卡（双拨）：
 
 ```sh
 ip link add link eth0 eth0mac0 type macvlan
@@ -100,6 +104,21 @@ ip link add link eth0 eth0mac1 type macvlan
 ```
 
 > 四拨就再加 2 个：`eth0mac2`、`eth0mac3`。
+
+#### 方式 B：luci 网页（保姆级，点鼠标）
+
+1. 浏览器打开 `192.168.1.1` 登录
+2. 左侧菜单「**网络**」→「**设备**」（英文 Network → Devices）
+3. 点「**添加设备配置**」按钮（Add device configuration）
+4. 填表单：
+   - **设备类型**（Device type）下拉选「**MAC VLAN**」
+   - **设备名称**（Device name）：填 `eth0mac0`
+   - **基设备**（Base device，父接口）：选 `eth0`（你连校园网的口）
+   - **MAC 地址**：**留空**（系统自动生成随机 MAC）
+5. 点「**保存**」→「**保存并应用**」
+6. **重复第 3~5 步**，再创建一个 `eth0mac1`
+
+> 注意：不同 OpenWrt / iStoreOS 版本的菜单名可能不同（有的没有「设备」菜单，有的叫别的名字）。如果网页里找不到「设备」，就用方式 A（命令行），更通用、一定可用。
 
 ### 第 3 步：配置 mwan3（保姆级，跟着点就行）
 
