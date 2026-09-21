@@ -150,14 +150,12 @@ ip link add link eth0 eth0mac1 type macvlan</code></pre>
     <p class="tip">四拨就再加 <code>eth0mac2</code>、<code>eth0mac3</code> 两个。</p>
   </div>
 
-  <div class="step"><h3>配置 mwan3</h3>
-    <p>浏览器打开 <code>192.168.1.1</code>，进「网络 → 负载均衡」，按四层配：</p>
-    <ol>
-      <li><strong>接口</strong>：新建 vwan0、vwan1，绑定 eth0mac0、eth0mac1，track_ip 填 <code>www.baidu.com</code></li>
-      <li><strong>成员</strong>：每个接口建一个 member</li>
-      <li><strong>策略</strong>：建 balanced，加入两个 member</li>
-      <li><strong>规则</strong>：目标 <code>0.0.0.0/0</code>，策略选 balanced</li>
-    </ol>
+  <div class="step"><h3>配置 mwan3（保姆级）</h3>
+    <p>浏览器打开 <code>192.168.1.1</code> 登录，点顶部「网络 → 负载均衡」，分四层配，每层改完点「保存并应用」。</p>
+    <p><strong>① 接口</strong>：点「添加」→ 接口名填 <code>vwan0</code>、绑定接口选 <code>eth0mac0</code>、Track IP 填 <code>www.baidu.com</code>（其余保持默认）→ 保存并应用。再重复一次建 <code>vwan1</code>（绑定 <code>eth0mac1</code>）。</p>
+    <p><strong>② 成员</strong>：切「成员」标签 → 点「添加」→ 接口选 <code>vwan0</code>、跃点数 <code>1</code>、权重 <code>1</code> → 保存并应用。再重复建 vwan1 的成员。</p>
+    <p><strong>③ 策略</strong>：切「策略」标签 → 点「添加」→ 策略名填 <code>balanced</code>、把两个成员都加进来 → 保存并应用。</p>
+    <p><strong>④ 规则</strong>：切「规则」标签 → 编辑默认规则（或点添加）→ 目标地址 <code>0.0.0.0/0</code>、策略选 <code>balanced</code> → 保存并应用。</p>
   </div>
 
   <div class="step"><h3>上传认证脚本</h3>
