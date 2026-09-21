@@ -143,12 +143,12 @@
   <div class="step"><h3>创建虚拟接口（macvlan）</h3>
     <p><strong>方式 A（命令行，最快）</strong>：</p>
     <pre><code>ip link show | grep eth              # 看物理 WAN 口名字
-ip link add link eth0 eth0mac0 type macvlan
-ip link add link eth0 eth0mac1 type macvlan</code></pre>
+ip link add link eth0 eth0mac0 type macvlan mode vepa
+ip link add link eth0 eth0mac1 type macvlan mode vepa</code></pre>
     <p><strong>方式 B（luci 网页，点鼠标）</strong>：</p>
     <ol>
       <li>左侧「网络 → 设备」（Network → Devices）</li>
-      <li>点「添加设备配置」→ 设备类型选 <code>MAC VLAN</code></li>
+      <li>点「添加设备配置」→ 设备类型选 <code>MAC VLAN</code>、模式选 <code>VEPA</code></li>
       <li>设备名填 <code>eth0mac0</code>、基设备选 <code>eth0</code>、MAC 留空</li>
       <li>保存并应用，再重复建 <code>eth0mac1</code></li>
     </ol>

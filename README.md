@@ -99,8 +99,8 @@ ip link show | grep eth
 找到连校园网的口（通常是 `eth0` 或 `eth1`），假设是 `eth0`，创建 2 个虚拟网卡（双拨）：
 
 ```sh
-ip link add link eth0 eth0mac0 type macvlan
-ip link add link eth0 eth0mac1 type macvlan
+ip link add link eth0 eth0mac0 type macvlan mode vepa
+ip link add link eth0 eth0mac1 type macvlan mode vepa
 ```
 
 > 四拨就再加 2 个：`eth0mac2`、`eth0mac3`。
@@ -112,6 +112,7 @@ ip link add link eth0 eth0mac1 type macvlan
 3. 点「**添加设备配置**」按钮（Add device configuration）
 4. 填表单：
    - **设备类型**（Device type）下拉选「**MAC VLAN**」
+   - **模式**（Mode）：选「**VEPA**」（重要，多拨认证需要）
    - **设备名称**（Device name）：填 `eth0mac0`
    - **基设备**（Base device，父接口）：选 `eth0`（你连校园网的口）
    - **MAC 地址**：**留空**（系统自动生成随机 MAC）
