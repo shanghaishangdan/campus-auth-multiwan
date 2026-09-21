@@ -155,6 +155,12 @@ ip link add link eth0 eth0mac1 type macvlan</code></pre>
     <p class="tip">四拨就再加 <code>eth0mac2</code>、<code>eth0mac3</code> 两个。找不到「设备」菜单就用命令行方式。</p>
   </div>
 
+  <div class="step"><h3>配置逻辑接口（网关跃点 + DNS）</h3>
+    <p>「网络 → 接口」→ 添加新接口 → 名称 <code>vwan0</code>、协议 DHCP、设备 <code>eth0mac0</code> → 创建接口。</p>
+    <p>切「高级设置」标签填两项：<strong>网关跃点</strong>填 <code>10</code>、<strong>自定义 DNS</strong>填 <code>223.5.5.5 114.114.114.114</code> → 保存并应用。再重复建 <code>vwan1</code>（网关跃点 <code>20</code>）。</p>
+    <p class="tip">网关跃点设不同值避免路由冲突；手动 DNS 避免 DHCP 自动分配的 DNS 打架。</p>
+  </div>
+
   <div class="step"><h3>配置 mwan3（保姆级）</h3>
     <p>浏览器打开 <code>192.168.1.1</code> 登录，点顶部「网络 → 负载均衡」，分四层配，每层改完点「保存并应用」。</p>
     <p><strong>① 接口</strong>：点「添加」→ 接口名填 <code>vwan0</code>、绑定接口选 <code>eth0mac0</code>、Track IP 填 <code>www.baidu.com</code>（其余保持默认）→ 保存并应用。再重复一次建 <code>vwan1</code>（绑定 <code>eth0mac1</code>）。</p>
