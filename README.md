@@ -197,7 +197,7 @@ scp 2wan/campus_auth_openwrt.py root@192.168.1.1:/zy/campus_auth.py
 
 > 四拨就传 `4wan/` 里的同名文件。
 
-### 第 5 步：配置账号密码
+### 第 5 步：配置脚本（改 4 个地方）
 
 在路由器上编辑脚本：
 
@@ -205,7 +205,11 @@ scp 2wan/campus_auth_openwrt.py root@192.168.1.1:/zy/campus_auth.py
 vi /zy/campus_auth.py
 ```
 
-找到 `INTERFACES` 这一段，把 `YOUR_USERNAME` / `YOUR_PASSWORD` 改成你的账号密码：
+> `vi` 操作：按 `i` 进入编辑，改完按 `Esc`，输入 `:wq` 回车保存退出。下面 4 处都在这一个文件里（第 4 处网关在另一个文件）。
+
+#### 5.1 账号密码（INTERFACES）
+
+把 `YOUR_USERNAME` / `YOUR_PASSWORD` 改成你的学号和密码：
 
 ```python
 INTERFACES = [
@@ -214,7 +218,38 @@ INTERFACES = [
 ]
 ```
 
-> `vi` 操作：按 `i` 进入编辑，改完按 `Esc`，输入 `:wq` 回车保存退出。
+#### 5.2 认证服务器地址（BASE_URL）
+
+脚本顶部，把 `YOUR_AUTH_SERVER` 改成你校园网的认证服务器地址：
+
+```python
+BASE_URL = "http://YOUR_AUTH_SERVER/"   # 改成认证服务器的 IP 或域名
+```
+
+**怎么知道地址**：浏览器打开校园网认证页面（就是输学号密码登录的那个网页），看**地址栏**里的 IP 或域名，填进来。比如地址栏是 `http://10.0.0.1/`，就填 `10.0.0.1`。
+
+#### 5.3 AES 密钥（AES_KEY）
+
+脚本顶部：
+
+```python
+AES_KEY = b"5a3b9f207411a8ed"   # 认证系统的加密密钥
+```
+
+- **学校用 raasportal 系统**（和本项目一样）：密钥已填好，**不用改**
+- **学校用别的系统**：密钥不同，需要自己从认证系统前端 JS 反解（见第八节「进阶」）
+
+#### 5.4 网关地址（GW，在 99-campus-auth 脚本里）
+
+只有部署静态路由（`99-campus-auth`，插手机热点才需要）时才要改：
+
+```sh
+vi /etc/hotplug.d/iface/99-campus-auth
+# 找到这一行
+GW="YOUR_GATEWAY"   # 改成你校园网的网关
+```
+
+**怎么知道网关**：路由器上执行 `ip route show`，看 `default via` 后面的 IP，那就是网关（比如 `default via 10.0.0.254` 里的 `10.0.0.254`）。
 
 ### 第 6 步：部署保活服务
 

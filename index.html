@@ -174,10 +174,13 @@ ip link add link eth0 eth0mac1 type macvlan mode vepa</code></pre>
     <p class="tip">四拨就传 <code>4wan/</code> 里的同名文件。</p>
   </div>
 
-  <div class="step"><h3>配置账号密码</h3>
+  <div class="step"><h3>配置脚本（改 4 处）</h3>
     <pre><code>vi /zy/campus_auth.py</code></pre>
-    <p>找到 <code>INTERFACES</code>，把 <code>YOUR_USERNAME</code> / <code>YOUR_PASSWORD</code> 改成真实账号密码。</p>
-    <p class="tip">vi 操作：按 <code>i</code> 编辑 → 改完按 <code>Esc</code> → 输入 <code>:wq</code> 回车保存。</p>
+    <p><strong>① 账号密码</strong>：把 <code>INTERFACES</code> 里的 <code>YOUR_USERNAME</code> / <code>YOUR_PASSWORD</code> 改成学号和密码。</p>
+    <p><strong>② 认证服务器</strong>：把 <code>BASE_URL</code> 里的 <code>YOUR_AUTH_SERVER</code> 改成认证页地址栏的 IP/域名。</p>
+    <p><strong>③ AES 密钥</strong>：raasportal 系统已内置 <code>5a3b9f207411a8ed</code>，不用改；其他系统需自行反解。</p>
+    <p><strong>④ 网关</strong>：部署 <code>99-campus-auth</code> 时，把 <code>GW="YOUR_GATEWAY"</code> 改成 <code>ip route show</code> 里 default via 的地址。</p>
+    <p class="tip">vi 操作：按 <code>i</code> 编辑 → <code>Esc</code> → <code>:wq</code> 保存。</p>
   </div>
 
   <div class="step"><h3>部署保活服务</h3>
