@@ -30,7 +30,7 @@ except Exception:
     pass
 
 # ==================== 配置区 ====================
-BASE_URL = "http://10.20.33.101/"
+BASE_URL = "http://YOUR_AUTH_SERVER/"
 AES_KEY = b"5a3b9f207411a8ed"           # 密钥, 从 crypto.js 反解得到
 CHECK_URL = "http://connect.rom.miui.com/generate_204"  # 在线检测目标(204 即已放行)
 SALT_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345678"

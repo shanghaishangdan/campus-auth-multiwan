@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 校园网认证脚本 (raasportal 系统)
-认证入口: http://10.20.33.101/
+认证入口: http://YOUR_AUTH_SERVER/
 
 用法:
     python campus_login.py            # 登录
@@ -28,7 +28,7 @@ except Exception:
     pass
 
 # ============ 配置 ============
-BASE_URL = "http://10.20.33.101/"
+BASE_URL = "http://YOUR_AUTH_SERVER/"
 USERNAME = "YOUR_USERNAME"
 PASSWORD = "YOUR_PASSWORD"
 AES_KEY = b"5a3b9f207411a8ed"          # 密钥, 从 crypto.js 反解得到

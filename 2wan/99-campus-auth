@@ -1,11 +1,11 @@
 #!/bin/sh
 # 校园网认证: 接口 up 时给认证服务器加静态路由(绕过 mwan3 动态路由)
 # 部署: 放到 /etc/hotplug.d/iface/99-campus-auth 并 chmod +x
-# 作用: 认证服务器 10.20.33.101 的流量按源 IP 固定走各自接口,
+# 作用: 认证服务器 YOUR_AUTH_SERVER 的流量按源 IP 固定走各自接口,
 #       不受 mwan3 掉线切换影响, 保证随时可重新认证。
 
-AUTH_SRV="10.20.33.101"
-GW="10.112.87.254"
+AUTH_SRV="YOUR_AUTH_SERVER"
+GW="YOUR_GATEWAY"
 
 [ "$ACTION" = "ifup" ] || exit 0
 
