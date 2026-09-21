@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校园网认证 + 单线多拨方案</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --green: #4ade80;
+    --red: #f87171;
+    --border: #334155;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    line-height: 1.7;
+    padding: 2rem 1rem;
+  }
+  .container { max-width: 860px; margin: 0 auto; }
+  header {
+    text-align: center;
+    padding: 3rem 1rem;
+    margin-bottom: 2rem;
+  }
+  header h1 {
+    font-size: 2.2rem;
+    margin-bottom: 0.8rem;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  header p { color: var(--muted); font-size: 1.05rem; }
+  .badge {
+    display: inline-block;
+    padding: 0.25rem 0.8rem;
+    margin: 0.3rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 1.8rem;
+    margin-bottom: 1.5rem;
+  }
+  h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+  ul { padding-left: 1.3rem; }
+  li { margin: 0.4rem 0; }
+  code {
+    background: #0b1120;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-family: "JetBrains Mono", "Consolas", monospace;
+    font-size: 0.9em;
+    color: var(--green);
+  }
+  pre {
+    background: #0b1120;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", "Consolas", monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  pre code { background: none; padding: 0; color: #cbd5e1; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.8rem 0;
+  }
+  th, td {
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--muted); font-weight: 500; }
+  .ok { color: var(--green); }
+  .warn { color: var(--red); }
+  .tip {
+    border-left: 3px solid var(--accent);
+    padding: 0.8rem 1rem;
+    margin: 1rem 0;
+    background: #0b1120;
+    border-radius: 0 8px 8px 0;
+    color: var(--muted);
+  }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    padding: 2rem;
+    font-size: 0.9rem;
+  }
+  a { color: var(--accent); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>校园网认证 + 单线多拨方案</h1>
+  <p>针对 raasportal 认证系统的校园网，实现单线多拨带宽叠加、自动认证、掉线保活</p>
+  <div style="margin-top:1rem;">
+    <span class="badge">OpenWrt / iStoreOS</span>
+    <span class="badge">纯 Python · 零依赖</span>
+    <span class="badge">双拨 / 四拨</span>
+    <span class="badge">AES-128-ECB</span>
+  </div>
+</header>
+
+<section>
+  <h2>功能特性</h2>
+  <ul>
+    <li><strong>纯 Python AES 加密</strong>：密码加密逻辑内置，无需第三方库</li>
+    <li><strong>单线多拨</strong>：双拨 / 四拨，每个拨号接口独立认证、绑定源接口</li>
+    <li><strong>keep 保活</strong>：HTTP <code>204/302</code> 精确检测认证状态，掉线自动重连</li>
+    <li><strong>日志自动轮转</strong>：日志超限自动截断，不占内存</li>
+    <li><strong>静态路由</strong>：多 WAN 场景防止认证服务器被抢</li>
+  </ul>
+</section>
+
+<section>
+  <h2>技术原理</h2>
+  <h3 style="color:var(--text);margin:0.8rem 0 0.4rem;">密码加密</h3>
+  <p>从前端 <code>crypto.js</code> 逆向得到：<code>AES-128-ECB-ZeroPadding</code>，明文为「4 位随机 salt + 密码」。</p>
+  <h3 style="color:var(--text);margin:0.8rem 0 0.4rem;">keep 检测机制</h3>
+  <table>
+    <tr><th>状态码</th><th>含义</th><th>动作</th></tr>
+    <tr><td><code>204</code></td><td>认证在线</td><td>不动作</td></tr>
+    <tr><td><code>302</code></td><td>认证掉线（Portal 重定向）</td><td class="ok">自动重连</td></tr>
+    <tr><td><code>000</code>/err</td><td>网络抖动</td><td class="warn">跳过，避免误判</td></tr>
+  </table>
+  <h3 style="color:var(--text);margin:0.8rem 0 0.4rem;">静态路由</h3>
+  <p>多 WAN 场景下，认证服务器（内网）可能被其他 WAN 的 default 路由抢走。<code>99-campus-auth</code> 用 <code>prio 50</code> 的 ip rule 锁死认证服务器走校园网接口。</p>
+</section>
+
+<section>
+  <h2>文件结构</h2>
+  <pre><code>.
+├── 2wan/                    # 双拨版
+│   ├── campus_auth_openwrt.py
+│   ├── 99-campus-auth
+│   └── campus_auth.initd
+├── 4wan/                    # 四拨版（需第二个账号）
+│   ├── campus_auth_openwrt.py
+│   ├── 99-campus-auth
+│   └── campus_auth.initd
+├── campus_login.py          # Windows 版（验证认证逻辑）
+├── mwan3.user               # mwan3 通知脚本（可选）
+├── verify.bat               # Windows 双击验证
+└── README.md</code></pre>
+</section>
+
+<section>
+  <h2>快速部署</h2>
+  <pre><code># 1. 上传主脚本（双拨为例）
+scp 2wan/campus_auth_openwrt.py root@&lt;路由IP&gt;:/zy/campus_auth.py
+
+# 2. 部署 init.d 服务
+scp 2wan/campus_auth.initd root@&lt;路由IP&gt;:/etc/init.d/campus_auth
+chmod +x /etc/init.d/campus_auth
+/etc/init.d/campus_auth enable
+/etc/init.d/campus_auth start
+
+# 3. 安装依赖
+opkg update &amp;&amp; opkg install curl</code></pre>
+  <div class="tip">
+    ⚠️ 部署前需把脚本里的 <code>YOUR_USERNAME</code> / <code>YOUR_PASSWORD</code> 改成真实账号密码，并修改 <code>BASE_URL</code>（认证服务器地址）、<code>AES_KEY</code>（需自行逆向）。
+  </div>
+</section>
+
+<section>
+  <h2>双拨 / 四拨</h2>
+  <p>每个账号限 2 台设备：</p>
+  <ul>
+    <li><strong>双拨</strong>（<code>2wan/</code>）：1 个账号认证 2 个接口</li>
+    <li><strong>四拨</strong>（<code>4wan/</code>）：2 个账号认证 4 个接口，把「待填账号2」改成真实值</li>
+  </ul>
+</section>
+
+<footer>
+  <p>仅供学习研究，请遵守所在校园网的使用规范。</p>
+  <p>查看完整说明见 <a href="https://github.com">GitHub 仓库 README</a></p>
+</footer>
+
+</div>
+</body>
+</html>

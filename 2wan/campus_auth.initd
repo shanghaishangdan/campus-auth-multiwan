@@ -1,0 +1,17 @@
+#!/bin/sh /etc/rc.common
+# 校园网认证保活服务 (OpenWrt procd)
+# 部署: 复制到 /etc/init.d/campus_auth, 然后:
+#   chmod +x /etc/init.d/campus_auth
+#   /etc/init.d/campus_auth enable   # 开机自启
+#   /etc/init.d/campus_auth start    # 立即启动
+
+USE_PROCD=1
+START=99
+STOP=10
+
+start_service() {
+    procd_open_instance
+    procd_set_param command /bin/sh -c "/usr/bin/python3 -u /zy/campus_auth.py keep >> /tmp/campus_auth.log 2>&1"
+    procd_set_param respawn          # 异常退出自动重启
+    procd_close_instance
+}

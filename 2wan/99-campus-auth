@@ -1,0 +1,29 @@
+#!/bin/sh
+# 校园网认证: 接口 up 时给认证服务器加静态路由(绕过 mwan3 动态路由)
+# 部署: 放到 /etc/hotplug.d/iface/99-campus-auth 并 chmod +x
+# 作用: 认证服务器 10.20.33.101 的流量按源 IP 固定走各自接口,
+#       不受 mwan3 掉线切换影响, 保证随时可重新认证。
+
+AUTH_SRV="10.20.33.101"
+GW="10.112.87.254"
+
+[ "$ACTION" = "ifup" ] || exit 0
+
+case "$DEVICE" in
+    eth0mac0) tbl=100 ;;
+    eth0mac1) tbl=101 ;;
+    *) exit 0 ;;
+esac
+
+ip=$(ip -4 addr show "$DEVICE" 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1)
+[ -z "$ip" ] && exit 0
+
+# 用 replace 避免重复添加报错
+ip route replace "$AUTH_SRV/32" via "$GW" dev "$DEVICE" table "$tbl"
+# 先删掉该 table 的所有旧规则(不指定 from, 避免 IP 变化后旧 IP 规则残留)
+ip rule del to "$AUTH_SRV" lookup "$tbl" prio 50 2>/dev/null
+# 用当前 IP 重新添加
+ip rule add from "$ip" to "$AUTH_SRV" lookup "$tbl" prio 50
+
+logger -t campus-auth "route added: $DEVICE ($ip) -> $AUTH_SRV"
+exit 0
