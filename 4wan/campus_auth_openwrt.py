@@ -22,6 +22,7 @@ import os
 import random
 import subprocess
 import urllib.parse
+import re
 
 # 行缓冲输出, 确保 procd 常驻时日志实时刷到 logread
 try:
@@ -173,8 +174,36 @@ def find(name):
     return None
 
 
+def ensure_static_route(cfg):
+    """login 前确保认证服务器走本接口的静态路由, 避免依赖 hotplug 时机"""
+    iface = cfg["iface"]
+    auth_ip = urllib.parse.urlparse(BASE_URL).hostname
+    if not auth_ip:
+        return
+    r = subprocess.run(["ip", "-4", "addr", "show", iface],
+                       capture_output=True, text=True)
+    m = re.search(r'inet (\d+\.\d+\.\d+\.\d+)/', r.stdout)
+    if not m:
+        return
+    ip = m.group(1)
+    r = subprocess.run(["ip", "route", "show", "dev", iface],
+                       capture_output=True, text=True)
+    m = re.search(r'default via (\d+\.\d+\.\d+\.\d+)', r.stdout)
+    if not m:
+        return
+    gw = m.group(1)
+    tbl = 100 + INTERFACES.index(cfg)
+    subprocess.run(["ip", "route", "replace", auth_ip + "/32", "via", gw,
+                    "dev", iface, "table", str(tbl)], capture_output=True)
+    subprocess.run(["ip", "rule", "del", "from", ip, "to", auth_ip,
+                    "lookup", str(tbl), "prio", "50"], capture_output=True)
+    subprocess.run(["ip", "rule", "add", "from", ip, "to", auth_ip,
+                    "lookup", str(tbl), "prio", "50"], capture_output=True)
+
+
 def login(cfg):
     """认证单个接口: login -> ack_auth -> stat 确认"""
+    ensure_static_route(cfg)
     data = {
         "user": cfg["user"], "pass": encode_password(cfg["pass"]), "code": "",
         "authmode": "0", "pool": "", "isp_id": "0", "pxyacct": "",
@@ -232,27 +261,35 @@ def _trim_log():
 
 
 def keep(interval=15):
-    """保活: 遍历所有接口, 掉线则重认证"""
+    """保活: 遍历所有接口, 掉线则切流量(mwan3 ifdown)并重认证"""
     print("四拨保活启动, 每 %ds 检测一次" % interval)
     n = 0
+    prev = {cfg["name"]: True for cfg in INTERFACES}
     while True:
         try:
             for cfg in INTERFACES:
+                name = cfg["name"]
                 ok, code = check_online(cfg["iface"])
                 if ok:
-                    print("[%s %s] 在线" % (time.strftime("%H:%M:%S"), cfg["name"]))
+                    if not prev.get(name, True):
+                        subprocess.run(["mwan3", "ifup", name], capture_output=True)
+                        print("[%s %s] 恢复在线, 流量切回" % (time.strftime("%H:%M:%S"), name))
+                    prev[name] = True
                 elif code == "302":
-                    print("[%s %s] 认证掉线(http=302), 重认证..." % (time.strftime("%H:%M:%S"), cfg["name"]))
+                    if prev.get(name, True):
+                        subprocess.run(["mwan3", "ifdown", name], capture_output=True)
+                        print("[%s %s] 认证掉线(http=302), 流量切走" % (time.strftime("%H:%M:%S"), name))
+                    prev[name] = False
                     r = login(cfg)
                     print("  结果: %s - %s" % ("成功" if r["success"] else "失败", r["msg"]))
                 else:
-                    print("[%s %s] 检测失败(http=%s), 跳过" % (time.strftime("%H:%M:%S"), cfg["name"], code))
+                    print("[%s %s] 检测失败(http=%s), 跳过" % (time.strftime("%H:%M:%S"), name, code))
         except KeyboardInterrupt:
             raise
         except Exception as e:
             print("[%s] 异常: %s" % (time.strftime("%H:%M:%S"), e))
         n += 1
-        if n % 100 == 0:   # 每 100 轮(约 25 分钟)检查一次日志大小
+        if n % 100 == 0:   # 每 100 轮检查一次日志大小
             _trim_log()
         time.sleep(interval)
 

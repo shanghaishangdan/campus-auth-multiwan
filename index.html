@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>校园网认证 + 单线多拨 完全指南</title>
+<title>校园网认证 + 单线多拨 完全指南（含踩坑手册）</title>
 <style>
   :root {
     --bg: #0f172a;
@@ -26,11 +26,9 @@
   .container { max-width: 880px; margin: 0 auto; }
   header { text-align: center; padding: 3rem 1rem 2rem; }
   header h1 {
-    font-size: 2.1rem;
-    margin-bottom: 0.8rem;
+    font-size: 2.1rem; margin-bottom: 0.8rem;
     background: linear-gradient(90deg, var(--accent), var(--green));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   header p { color: var(--muted); font-size: 1.05rem; }
@@ -39,6 +37,8 @@
     border-radius: 999px; border: 1px solid var(--border);
     color: var(--muted); font-size: 0.85rem;
   }
+  nav { text-align: center; margin-bottom: 1.5rem; }
+  nav a { color: var(--accent); margin: 0 0.4rem; font-size: 0.9rem; }
   section {
     background: var(--card); border: 1px solid var(--border);
     border-radius: 12px; padding: 1.5rem 1.8rem; margin-bottom: 1.4rem;
@@ -71,10 +71,12 @@
     border-left: 3px solid var(--accent); padding: 0.8rem 1rem;
     margin: 1rem 0; background: #0b1120; border-radius: 0 8px 8px 0; color: var(--muted);
   }
-  .step { counter-increment: step; }
-  .step h3::before {
-    content: "第 " counter(step) " 步 · "; color: var(--accent);
+  .danger {
+    border-left: 3px solid var(--red); padding: 0.8rem 1rem;
+    margin: 1rem 0; background: #1c1216; border-radius: 0 8px 8px 0;
   }
+  .step { counter-increment: step; }
+  .step h3::before { content: "第 " counter(step) " 步 · "; color: var(--accent); }
   .steps { counter-reset: step; }
   footer { text-align: center; color: var(--muted); padding: 2rem; font-size: 0.9rem; }
   a { color: var(--accent); text-decoration: none; }
@@ -85,23 +87,39 @@
 
 <header>
   <h1>校园网认证 + 单线多拨 完全指南</h1>
-  <p>一根网线拨多个号，带宽叠加 + 自动认证 + 掉线保活，零基础也能看懂</p>
+  <p>一根网线拨多个号，带宽叠加 + 自动认证 + 掉线切流量，含完整踩坑手册</p>
   <div style="margin-top:1rem;">
     <span class="badge">OpenWrt / iStoreOS</span>
     <span class="badge">纯 Python · 零依赖</span>
     <span class="badge">双拨 / 四拨</span>
     <span class="badge">AES-128-ECB</span>
+    <span class="badge">掉线自动切流量</span>
   </div>
 </header>
 
-<section>
+<nav>
+  <a href="#what">是什么</a> ·
+  <a href="#concept">概念</a> ·
+  <a href="#tutorial">教程</a> ·
+  <a href="#pitfalls">⚠️容易错漏</a> ·
+  <a href="#troubleshoot">故障排查</a> ·
+  <a href="#faq">FAQ</a>
+</nav>
+
+<section id="what">
   <h2>这是什么？（说人话）</h2>
-  <p><strong>一句话</strong>：让你的路由器「一根网线同时拨多个号」，把校园网带宽叠加起来，而且<strong>掉线了自动重新登录</strong>。</p>
+  <p><strong>一句话</strong>：让你的路由器「一根网线同时拨多个号」，把校园网带宽叠加，而且<strong>掉线了自动切流量 + 自动重登录</strong>。</p>
   <p>举个栗子 🌰：</p>
   <ul>
     <li>宿舍只有<strong>一根网线</strong>，认证后单账号下载比如 <strong>40 Mbps</strong></li>
     <li>本方案让这根线「分身」成 2 个（甚至 4 个）虚拟接口，各自认证</li>
-    <li>下载速度<strong>翻倍到 80 Mbps</strong>（每个虚拟接口有独立带宽配额）</li>
+    <li>下载速度<strong>翻倍到 80 Mbps</strong></li>
+  </ul>
+  <p><strong>本方案额外做到</strong>（相比网上普通教程）：</p>
+  <ul>
+    <li>✅ 认证掉线后，<strong>流量自动切到另一个口</strong>（不再有「一半流量走死路」）</li>
+    <li>✅ DNS 永不卡（双上游并发 + 分口冗余）</li>
+    <li>✅ 认证服务器静态路由<strong>自动建立</strong>（不依赖部署时机）</li>
   </ul>
 </section>
 
@@ -109,127 +127,199 @@
   <h2>你需要准备什么</h2>
   <table>
     <tr><th>东西</th><th>说明</th></tr>
-    <tr><td><strong>路由器</strong></td><td>刷了 OpenWrt / iStoreOS 的路由器</td></tr>
-    <tr><td><strong>校园网账号</strong></td><td>1 个（双拨）/ 2 个（四拨），每个账号限 2 台设备</td></tr>
-    <tr><td><strong>电脑</strong></td><td>远程登录路由器（Windows 自带，无需装软件）</td></tr>
+    <tr><td><strong>路由器</strong></td><td>刷了 OpenWrt / iStoreOS 的路由器（mwan3 ≥ 2.10 最佳）</td></tr>
+    <tr><td><strong>校园网账号</strong></td><td>1 个（双拨）/ 2 个（四拨），每账号限 2 台设备</td></tr>
+    <tr><td><strong>电脑</strong></td><td>远程登录路由器（Windows 自带）</td></tr>
     <tr><td><strong>网线</strong></td><td>校园网口到路由器 WAN 口</td></tr>
   </table>
 </section>
 
-<section>
+<section id="concept">
   <h2>核心概念（1 分钟看懂）</h2>
   <h3>① 拨号</h3>
-  <p>校园网插线后，路由器 WAN 口通过 DHCP 自动拿到 IP（如 <code>10.0.0.1</code>），这个过程就是一次拨号。</p>
+  <p>校园网插线后，路由器 WAN 口通过 DHCP 自动拿到 IP（如 <code>10.0.0.1</code>），就是一次拨号。</p>
   <h3>② 单线多拨</h3>
-  <p>通过 <strong>macvlan</strong> 技术，在同一根物理网线上创建多个「虚拟网卡」，每个有独立 MAC 和 IP，等于「一根线拨多个号」。</p>
+  <p>通过 <strong>macvlan</strong> 技术，在同一根网线上创建多个「虚拟网卡」，每个有独立 MAC 和 IP，等于「一根线拨多个号」。</p>
   <h3>③ 认证</h3>
-  <p>校园网要先登录认证（输学号密码），认证系统记录「哪个 IP/MAC 已认证」后才放行上网。</p>
-  <h3>④ mwan3</h3>
+  <p>校园网要先登录认证（输学号密码），认证系统记录「哪个 IP/MAC 已认证」后放行上网。</p>
+  <h3 class="warn">④ ⚠️ 「半死」（最关键概念）</h3>
+  <p>认证掉线 ≠ 网络断开。认证掉线时，接口物理状态完全正常：</p>
+  <table>
+    <tr><th>项</th><th>认证掉线时</th></tr>
+    <tr><td>DHCP 租约</td><td>还在（接口有 IP）</td></tr>
+    <tr><td>链路</td><td>还亮着（网线没断）</td></tr>
+    <tr><td>ping</td><td class="ok">还通（ICMP 放行）</td></tr>
+    <tr><td>DNS</td><td class="ok">还能解析（53 端口放行）</td></tr>
+    <tr><td>HTTP</td><td class="warn">被 302 拦（唯一暴露掉线的信号）</td></tr>
+  </table>
+  <p class="danger">所以 mwan3 的 ping 检测<strong>永远抓不到认证掉线</strong>（因为 ping 通）。这是后面 track_ip 要留空的根本原因。</p>
+  <h3>⑤ mwan3</h3>
   <p>多 WAN 负载均衡插件，把流量自动分配到多个拨号，让下载速度叠加。</p>
-  <h3>⑤ keep 保活</h3>
-  <p>看门狗脚本，每 15 秒检查一次，掉线自动重连，让你一直在线。</p>
+  <h3>⑥ keep 保活</h3>
+  <p>看门狗脚本，每 15 秒检查认证状态：发现掉线（HTTP 302）就<strong>切流量 + 重新认证</strong>。</p>
 </section>
 
-<section>
-  <h2>分步教程（手把手）</h2>
+<section id="tutorial">
+  <h2>分步教程（婴儿级，手把手）</h2>
   <div class="steps">
 
   <div class="step"><h3>登录路由器</h3>
     <p>Windows 按 <code>Win + R</code>，输入 <code>cmd</code> 回车：</p>
     <pre><code>ssh root@192.168.1.1</code></pre>
-    <p>输入密码（屏幕不显示是正常的），看到 <code>root@iStoreOS:~#</code> 就成功了。</p>
+    <p>输密码（屏幕不显示正常），看到 <code>root@iStoreOS:~#</code> 成功。</p>
   </div>
 
   <div class="step"><h3>创建虚拟接口（macvlan）</h3>
-    <p><strong>方式 A（命令行，最快）</strong>：</p>
-    <pre><code>ip link show | grep eth              # 看物理 WAN 口名字
+    <pre><code>ip link show | grep eth
 ip link add link eth0 eth0mac0 type macvlan mode vepa
 ip link add link eth0 eth0mac1 type macvlan mode vepa</code></pre>
-    <p><strong>方式 B（luci 网页，点鼠标）</strong>：</p>
-    <ol>
-      <li>左侧「网络 → 设备」（Network → Devices）</li>
-      <li>点「添加设备配置」→ 设备类型选 <code>MAC VLAN</code>、模式选 <code>VEPA</code></li>
-      <li>设备名填 <code>eth0mac0</code>、基设备选 <code>eth0</code>、MAC 留空</li>
-      <li>保存并应用，再重复建 <code>eth0mac1</code></li>
-    </ol>
-    <p class="tip">四拨就再加 <code>eth0mac2</code>、<code>eth0mac3</code> 两个。找不到「设备」菜单就用命令行方式。</p>
+    <p class="tip">模式必须 <code>VEPA</code>。四拨再加 <code>eth0mac2</code>、<code>eth0mac3</code>。</p>
   </div>
 
-  <div class="step"><h3>配置逻辑接口（网关跃点 + DNS）</h3>
-    <p>「网络 → 接口」→ 添加新接口 → 名称 <code>vwan0</code>、协议 DHCP、设备 <code>eth0mac0</code> → 创建接口。</p>
-    <p>切「高级设置」标签填两项：<strong>网关跃点</strong>填 <code>10</code>、<strong>自定义 DNS</strong>填 <code>223.5.5.5 114.114.114.114</code> → 保存并应用。再重复建 <code>vwan1</code>（网关跃点 <code>20</code>）。</p>
-    <p class="tip">网关跃点设不同值避免路由冲突；手动 DNS 避免 DHCP 自动分配的 DNS 打架。</p>
+  <div class="step"><h3>配置逻辑接口</h3>
+    <p>「网络 → 接口」→ 添加新接口：</p>
+    <table>
+      <tr><th>字段</th><th>vwan0</th><th>vwan1</th></tr>
+      <tr><td>协议</td><td>DHCP 客户端</td><td>DHCP 客户端</td></tr>
+      <tr><td>设备</td><td>eth0mac0</td><td>eth0mac1</td></tr>
+      <tr><td>网关跃点</td><td>10</td><td>20</td></tr>
+      <tr><td>自定义 DNS</td><td colspan="2">223.5.5.5 223.6.6.6</td></tr>
+    </table>
+    <p class="tip">网关跃点错开（10/20）；自定义 DNS 两个口填一样的公共 DNS。</p>
   </div>
 
-  <div class="step"><h3>配置 mwan3（保姆级）</h3>
-    <p>浏览器打开 <code>192.168.1.1</code> 登录，点顶部「网络 → 负载均衡」，分四层配，每层改完点「保存并应用」。</p>
-    <p><strong>① 接口</strong>：点「添加」→ 接口名填 <code>vwan0</code>、绑定接口选 <code>eth0mac0</code>、Track IP 填 <code>www.baidu.com</code>（其余保持默认）→ 保存并应用。再重复一次建 <code>vwan1</code>（绑定 <code>eth0mac1</code>）。</p>
-    <p><strong>② 成员</strong>：切「成员」标签 → 点「添加」→ 接口选 <code>vwan0</code>、跃点数 <code>1</code>、权重 <code>1</code> → 保存并应用。再重复建 vwan1 的成员。</p>
-    <p><strong>③ 策略</strong>：切「策略」标签 → 点「添加」→ 策略名填 <code>balanced</code>、把两个成员都加进来 → 保存并应用。</p>
-    <p><strong>④ 规则</strong>：切「规则」标签 → 编辑默认规则（或点添加）→ 目标地址 <code>0.0.0.0/0</code>、策略选 <code>balanced</code> → 保存并应用。</p>
+  <div class="step"><h3>配置 mwan3（⚠️ 有几处别照网上抄）</h3>
+    <p>「网络 → 负载均衡」，分四层：</p>
+    <p><strong>① 接口</strong> —— <span class="warn">track_ip 留空！initial_state 填 online！</span></p>
+    <pre><code>接口名: vwan0    绑定接口: eth0mac0
+Track IP: 留空（不填）
+初始状态(initial_state): online</code></pre>
+    <p class="danger">网上教程都让你填 track_ip，本方案必须留空。填了 ping 检测会把脚本切走的接口又拉回 up，切流量失效。</p>
+    <p><strong>② 成员</strong>：vwan0 和 vwan1 各建一个（跃点 1、权重 1）。</p>
+    <p><strong>③ 策略</strong>：建 <code>balanced</code>，两个成员都加进来。</p>
+    <p><strong>④ 规则</strong>：默认规则 <code>0.0.0.0/0 → balanced</code>；再加一条 <code>53 端口 → balanced</code>（放默认规则前，做 DNS 冗余）。</p>
   </div>
 
-  <div class="step"><h3>上传认证脚本</h3>
-    <pre><code>scp 2wan/campus_auth_openwrt.py root@192.168.1.1:/zy/campus_auth.py</code></pre>
-    <p class="tip">四拨就传 <code>4wan/</code> 里的同名文件。</p>
+  <div class="step"><h3>配置 dnsmasq（DNS 并发）</h3>
+    <pre><code>uci set dhcp.@dnsmasq[0].allservers='1'
+uci commit dhcp
+/etc/init.d/dnsmasq restart</code></pre>
+    <p class="tip">⚠️ 若 <code>@dnsmasq[0]</code> 不生效，先 <code>uci show dhcp.@dnsmasq[0]</code> 拿确切 section 名（如 cfg01411c），改用 <code>uci set dhcp.cfg01411c.allservers='1'</code>。</p>
   </div>
 
-  <div class="step"><h3>配置脚本（改 4 处）</h3>
-    <pre><code>vi /zy/campus_auth.py</code></pre>
-    <p><strong>① 账号密码</strong>：把 <code>INTERFACES</code> 里的 <code>YOUR_USERNAME</code> / <code>YOUR_PASSWORD</code> 改成学号和密码。</p>
-    <p><strong>② 认证服务器</strong>：把 <code>BASE_URL</code> 里的 <code>YOUR_AUTH_SERVER</code> 改成认证页地址栏的 IP/域名。</p>
-    <p><strong>③ AES 密钥</strong>：raasportal 系统已内置 <code>5a3b9f207411a8ed</code>，不用改；其他系统需自行反解。</p>
-    <p><strong>④ 网关</strong>：部署 <code>99-campus-auth</code> 时，把 <code>GW="YOUR_GATEWAY"</code> 改成 <code>ip route show</code> 里 default via 的地址。</p>
-    <p class="tip">vi 操作：按 <code>i</code> 编辑 → <code>Esc</code> → <code>:wq</code> 保存。</p>
+  <div class="step"><h3>上传并配置认证脚本</h3>
+    <pre><code>scp 2wan/campus_auth_openwrt.py root@192.168.1.1:/zy/campus_auth.py
+ssh root@192.168.1.1 "vi /zy/campus_auth.py"</code></pre>
+    <p>改 <code>BASE_URL</code>（认证服务器地址）和 <code>INTERFACES</code>（学号密码）。</p>
+    <p class="tip">本脚本已内置静态路由自动建立（<code>ensure_static_route</code>），login 前自动执行，<strong>不需要再部署 99-campus-auth</strong>。</p>
   </div>
 
   <div class="step"><h3>部署保活服务</h3>
     <pre><code>scp 2wan/campus_auth.initd root@192.168.1.1:/etc/init.d/campus_auth
-chmod +x /etc/init.d/campus_auth
-/etc/init.d/campus_auth enable
-/etc/init.d/campus_auth start</code></pre>
+ssh root@192.168.1.1 "chmod +x /etc/init.d/campus_auth && /etc/init.d/campus_auth enable && /etc/init.d/campus_auth start"</code></pre>
   </div>
 
   <div class="step"><h3>装依赖 + 测试</h3>
     <pre><code>opkg update && opkg install curl
 python3 /zy/campus_auth.py</code></pre>
-    <p><strong>预期输出</strong>：<code>[vwan0] 成功 - 认证成功！</code> 和 <code>[vwan1] 成功</code>，双拨就通了。</p>
+    <p>预期：<code>[vwan0] 成功 - 认证成功！</code> 和 <code>[vwan1] 成功</code>。</p>
+  </div>
+
+  <div class="step"><h3>验证自动切流量（别跳过）</h3>
+    <pre><code># 模拟 vwan0 掉线
+curl -s --interface eth0mac0 -X POST "http://10.20.33.101/api/logoff.php"
+mwan3 status   # balanced 应只剩 vwan1
+# 等 15 秒
+python3 /zy/campus_auth.py status   # vwan0 应自动重认证
+mwan3 status   # balanced 应恢复 vwan0 + vwan1</code></pre>
   </div>
 
   </div>
 </section>
 
-<section>
-  <h2>日常使用</h2>
-  <p>部署完<strong>完全不用管</strong>：掉线自动重连、重启自动启动、日志自动轮转。</p>
-  <pre><code>python3 /zy/campus_auth.py status    # 查看认证状态
-python3 /zy/campus_auth.py logoff    # 手动下线
-cat /tmp/campus_auth.log             # 查看日志</code></pre>
+<section id="pitfalls">
+  <h2>⚠️ 容易错漏的地方（必读）</h2>
+
+  <h3>坑 1：mwan3 的 track_ip 不要填</h3>
+  <p>认证掉线时 ping 通，track_ip 检测判「在线」抓不到掉线，还会把脚本手动切走的接口又拉回 up。</p>
+
+  <h3>坑 2：initial_state 必须填 online</h3>
+  <p>不设 track_ip 时，填 <code>offline</code> 接口<strong>永远离线</strong>，流量走不了。</p>
+
+  <h3>坑 3：认证掉线是「半死」，mwan3 检测不到</h3>
+  <table>
+    <tr><th>检测方式</th><th>认证掉线时</th><th>结果</th></tr>
+    <tr><td>ping</td><td>ICMP 放行</td><td class="warn">判在线</td></tr>
+    <tr><td>httping</td><td>302 算「有响应」</td><td class="warn">判在线</td></tr>
+    <tr><td>nping-tcp</td><td>80 端口开着</td><td class="warn">判在线</td></tr>
+  </table>
+  <p>唯一能测掉线的是脚本的 <code>check_online</code>（curl generate_204，看 204/302）。</p>
+
+  <h3>坑 4：认证请求必须「分别走各自口」</h3>
+  <p>静态路由没建立时，认证请求被 mwan3 分流到错误口（A 口源 IP 从 B 口出去），被 uRPF 丢弃，认证失败。本脚本已内置 <code>ensure_static_route</code> 自动建立。</p>
+
+  <h3>坑 5：单线多拨下 metric 切换没用</h3>
+  <p>两个口走同一根网线，物理断一起断，metric 主备切换是假命题。唯一冗余是「认证冗余」。</p>
+
+  <h3>坑 6：DNS 是命门，要单独做冗余</h3>
+  <p>双上游 + all-servers 并发 + mwan3 53 端口规则，三样缺一不可。</p>
+
+  <h3>坑 7：grep "prio 50" 匹配不到</h3>
+  <p><code>ip rule show</code> 输出是 <code>50:</code> 不是 <code>prio 50</code>。验证用 <code>ip rule show | grep "认证服务器IP"</code>。</p>
 </section>
 
-<section>
-  <h2>常见问题（FAQ）</h2>
+<section id="troubleshoot">
+  <h2>故障排查手册（踩过的坑）</h2>
+
+  <h3>Q1：认证「Failed to connect 认证服务器 port 80」</h3>
+  <p><strong>根因</strong>：静态路由没建立，认证请求被 mwan3 分流到错误口，uRPF 丢弃。</p>
+  <pre><code>ip rule show | grep "10.20.33.101"   # 看 prio 50 规则在不在
+ip route show table 100             # 看 table 100 有没有认证服务器路由</code></pre>
+  <p><strong>解决</strong>：用新版脚本（login 自动建），或手动触发旧版 99-campus-auth。</p>
+
+  <h3>Q2：一个口认证不了，另一个正常</h3>
+  <p><strong>根因</strong>：静态路由没建立 + 这个口不在 mwan3 balanced。</p>
+  <pre><code>mwan3 status          # 看 balanced 有没有这个口
+mwan3 ifup 接口名     # 恢复状态</code></pre>
+
+  <h3>Q3：mwan3 status 显示接口「unknown」</h3>
+  <p><strong>正常</strong>，不设 track_ip 就这样，不影响参与 balanced。</p>
+
+  <h3>Q4：balanced 只剩一个口</h3>
+  <p>那个口被 <code>mwan3 ifdown</code> 切走了，等 keep 重认证后自动 ifup 恢复。</p>
+
+  <h3>Q5：DNS 偶尔卡</h3>
+  <p>配两个上游 + all-servers + 53 端口规则。</p>
+
+  <h3>Q6：重启后静态路由没建立（旧版 99-campus-auth 的坑）</h3>
+  <p>hotplug 只在 ifup 触发，部署晚了错过。新版脚本已把静态路由搬进 login 前自动建立，不再有此问题。</p>
+</section>
+
+<section id="faq">
+  <h2>常见问题 FAQ</h2>
   <table>
     <tr><th>问题</th><th>原因 / 解决</th></tr>
-    <tr><td>认证「重试3次仍失败」</td><td>认证服务器地址不对，或网线断了</td></tr>
-    <tr><td>下载叠加、上传没叠加</td><td>正常现象，上行按账号限速，四拨用 2 账号才能叠加</td></tr>
-    <tr><td>认证成功但网速慢</td><td>检查 mwan3 balanced 策略和规则配对</td></tr>
-    <tr><td>重启后失效</td><td>确认 <code>campus_auth</code> 已 enable</td></tr>
-    <tr><td>插手机热点后认证连不上</td><td>需部署 <code>99-campus-auth</code> 静态路由</td></tr>
+    <tr><td>下载叠加、上传没叠加</td><td>正常，上行按账号限速，四拨用 2 账号才能叠加</td></tr>
+    <tr><td>认证成功但网速没翻倍</td><td>检查 balanced 策略和规则，看流量是否分散到两个口</td></tr>
+    <tr><td>重启后失效</td><td>确认 campus_auth 服务已 enable</td></tr>
+    <tr><td>掉线后一半流量走死路</td><td>半死导致，本方案靠 keep 检测 302 + ifdown 切流量解决，窗口 = keep 周期</td></tr>
+    <tr><td>切流量瞬间闪断</td><td>正常，ifdown 重置已有连接，客户端重连走另一口</td></tr>
   </table>
 </section>
 
 <section>
   <h2>技术细节</h2>
   <h3>密码加密</h3>
-  <p>认证系统密码加密（从前端 crypto.js 逆向）：<code>AES-128-ECB-ZeroPadding</code>，明文 = 4 位随机 salt + 密码。</p>
-  <h3>keep 检测</h3>
+  <p><code>AES-128-ECB-ZeroPadding</code>，明文 = 4 位随机 salt + 密码，密钥系统级通用。</p>
+  <h3>keep 检测 + 切流量</h3>
   <table>
     <tr><th>状态码</th><th>含义</th><th>动作</th></tr>
-    <tr><td><code>204</code></td><td>在线</td><td>不动作</td></tr>
-    <tr><td><code>302</code></td><td>认证掉线</td><td class="ok">自动重连</td></tr>
-    <tr><td><code>000</code>/err</td><td>网络抖动</td><td class="warn">跳过</td></tr>
+    <tr><td><code>204</code></td><td>在线</td><td class="ok">若之前掉线，mwan3 ifup 切回</td></tr>
+    <tr><td><code>302</code></td><td>认证掉线</td><td class="warn">mwan3 ifdown 切流量 + 重认证</td></tr>
+    <tr><td><code>err</code></td><td>网络抖动</td><td>跳过</td></tr>
   </table>
+  <h3>认证请求的静态路由</h3>
+  <p><code>prio 50</code> 的 ip rule 锁死认证服务器走各自口，优先级远高于 mwan3（1000+），所以认证请求不被 mwan3 分流。</p>
 </section>
 
 <footer>
